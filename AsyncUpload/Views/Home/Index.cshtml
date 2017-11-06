@@ -1,0 +1,93 @@
+﻿@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Index</title>
+    <link rel="stylesheet" href="~/Styles/index.css" />
+</head>
+<body>
+    @*
+        En algunas ocasiones, es necesario agregar el atributo enctype="multipart/form-data" al elemento <form>,
+        para que la acción en el back-end reconozca que se envió un archivo adjunto.
+    *@
+    <form id="upload-form" method="post">
+        <div>
+            <label for="file-input">Seleccionar archivo</label>
+            <input type="file" id="file-input" name="file-input" />
+        </div>
+        <div>
+            <label for="upload-progress">Progreso</label>
+            <progress id="upload-progress" value="0" max="100"></progress>
+        </div>
+        <div>
+            <button type="submit" id="upload-button">Subir archivo</button>
+        </div>
+        <div>
+            <table id="file-data">
+                <tr>
+                    <th>Nombre del archivo</th>
+                    <td class="file-name"></td>
+                </tr>
+                <tr>
+                    <th>Tipo</th>
+                    <td class="file-type"></td>
+                </tr>
+                <tr>
+                    <th>Tamaño</th>
+                    <td class="file-size"></td>
+                </tr>
+            </table>
+        </div>
+    </form>
+    <script src="~/Scripts/jquery-3.2.1.js"></script>
+    <script src="~/Scripts/jquery.form.min.js"></script>
+    <script>
+        $('#upload-form').ajaxForm({
+            @* URL de la acción (o dirección de página web, servicio, etc.) que procesará el archivo subido *@
+            url: '@Url.Action("upload", "file")',
+            @* Esta función agrupa los datos que serán enviados. En este punto se pueden hacer validaciones,
+               o incluso modificar los datos a enviar. Si necesitamos cancelar la operación, retornamos false *@
+            beforeSubmit: function (data, $form, options) {
+                var file = data.find(function (i) { return i.name === 'file-input'; });
+                if (!file || !file.value) {
+                    alert('Primero seleccione un archivo.');
+                    return false;
+                }
+                $('#file-data').find('td').text('');
+            },
+            @* Aquí podemos hacer cualquier cambio antes de que se envíe la solicitud al servidor.
+               En este punto ya están recabados todos los datos a enviar, y cualquier alteración en la página
+               no afectará a la petición en curso. *@
+            beforeSend: function (evt, xhr) {
+                $('#file-input, #upload-button').prop('disabled', true);
+            },
+            @* Esta función se ejecuta varias veces conforme el archivo es subido. En este ejemplo mostramos el progreso de subida. *@
+            uploadProgress: function (evt, position, total, percentage) {
+                $('#upload-progress').val(percentage);
+            },
+            @* Si la carga del archivo fue exitosa, se ejecuta esta función. *@
+            success: function (responseText, status, xhr, $form) {
+                var table = $('#file-data');
+                var data = responseText;
+                table.find('.file-name').text(data.name);
+                table.find('.file-type').text(data.type);
+                table.find('.file-size').text(data.size);
+            },
+            @* Terminada la carga, si el servidor arrojó un error (porque no permite la subida de archivos de cierto tipo,
+               porque se excedió el límite de carga en una solicitud), se ejecuta esta función en lugar de success. *@
+            error: function (evt, status, error, $form) {
+                $('#upload-progress').val(100);
+                alert('No se pudo subir el archivo.');
+            },
+            @* Ya sea después de success o error, se ejecuta esta función para finalizar el proceso de subida. *@
+            complete: function (xhr, status, $form) {
+                $('#upload-progress').val(0);
+                $('#file-input, #upload-button').prop('disabled', false);
+            }
+        });
+    </script>
+</body>
+</html>
